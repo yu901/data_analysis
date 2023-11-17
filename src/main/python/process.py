@@ -1,4 +1,5 @@
 
+import pm4py as pm
 from utils import *
 
 class Process():
@@ -8,11 +9,16 @@ class Process():
         self.timestamp = timestamp
         self.attrs = list(set(data.columns) - {case, activity, timestamp})
         self.data = self.sort_timestamp(data)
+        self.xes = self.get_xes()
         
     def sort_timestamp(self, df):
         df = df.sort_values(self.timestamp).reset_index(drop=True)
         return df
 
+    def get_xes(self):
+        xes = pm.format_dataframe(self.data, case_id=self.case, activity_key=self.activity, timestamp_key=self.timestamp)
+        return xes
+    
     # case attribute
     def get_caseattrs(self):
         df = self.data.copy()
@@ -46,6 +52,19 @@ class Process():
         df = pd.merge(df, varient, on=self.case)
         return df
 
+    def save_bpmn(self, file_path):
+        # BPMN 모델
+        process_tree = pm.discover_process_tree_inductive(self.xes)
+        bpmn_model = pm.convert_to_bpmn(process_tree)
+        pm.save_vis_bpmn(bpmn_model, file_path)
+        print(f'{file_path} is saved.')
+
+    def save_dfg(self, file_path):
+        # process map 모델
+        dfg, start_activities, end_activities = pm.discover_dfg(self.xes)
+        pm.save_vis_dfg(dfg, start_activities, end_activities, file_path)
+        print(f'{file_path} is saved.')
+
 
 if __name__ == "__main__":
     data = load_csv('./data/Insurance_claims_event_log.csv', timestamp_cols=['timestamp'])
@@ -53,5 +72,5 @@ if __name__ == "__main__":
     activity = 'activity_name'
     timestamp = 'timestamp'
     process = Process(data, case, activity, timestamp)
-    casetable = process.get_casetable()
-    print('casetable:\n', casetable.head(3))
+    process.save_bpmn('./result/bpmn.png')
+    process.save_dfg('./result/dfg.png')
