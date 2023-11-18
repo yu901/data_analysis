@@ -1,6 +1,6 @@
 
 import pm4py as pm
-from utils import *
+from src.main.python.utils import *
 
 class Process():
     def __init__(self, data, case, activity, timestamp):
@@ -56,6 +56,7 @@ class Process():
         # BPMN 모델
         process_tree = pm.discover_process_tree_inductive(self.xes)
         bpmn_model = pm.convert_to_bpmn(process_tree)
+        pm.view_bpmn(bpmn_model)
         pm.save_vis_bpmn(bpmn_model, file_path)
         print(f'{file_path} is saved.')
 
@@ -63,6 +64,7 @@ class Process():
         # process map 모델
         dfg, start_activities, end_activities = pm.discover_dfg(self.xes)
         pm.save_vis_dfg(dfg, start_activities, end_activities, file_path)
+        pm.view_dfg(dfg, start_activities, end_activities)
         print(f'{file_path} is saved.')
 
 
