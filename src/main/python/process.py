@@ -7,6 +7,7 @@ class Process():
         self.case = case
         self.activity = activity
         self.timestamp = timestamp
+        # self.resource = None
         self.attrs = list(set(data.columns) - {case, activity, timestamp})
         self.data = self.sort_timestamp(data)
         self.xes = self.get_xes()
@@ -22,6 +23,9 @@ class Process():
     
     def set_timeunit(self, time_unit):
         self.time_unit = time_unit
+    
+    # def set_resource(self, resource):
+    #     self.resource = resourec
     
     # case attribute
     def get_caseattrs(self):
@@ -59,6 +63,22 @@ class Process():
         df['path'] = df['from_activity'] + '>' + df['to_activity']
         df = df[['path', 'from_activity', 'to_activity', 'from_timestamp', 'to_timestamp', 'duration']]
         return df
+    
+    def get_capacity(self, resource):
+        df = self.data.copy()
+        if resource not in df.columns:
+            print(f'There is no {resource} column.')
+            return None
+        else:
+            df_start = df.copy()
+            df_end = df.groupby(resource)[self.timestamp].shift(1).reset_index()
+            df_start['s/e'] = 1
+            df_end['s/e'] = -1
+            df = pd.concat([df_start, df_end], ignore_index=True)
+            df = df.sort_values(self.timestamp)
+            df['capacity'] = df.groupby(resource)['s/e'].cumsum()
+            df = df.groupby(resource)['capacity'].max().reset_index()
+            return df
     
     def get_casetable(self):
         caseattrs = self.get_caseattrs()
