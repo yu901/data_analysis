@@ -19,8 +19,8 @@ class BaseConfig:
         self.yml_path = self.root_path + self.conf_dir
 
 
-class KofisConfig(BaseConfig):
+class KobisConfig(BaseConfig):
     def __init__(self):
         super().__init__()
-        storage = self.config["kofis"]
+        storage = self.config["kobis"]
         self.key = storage["key"]

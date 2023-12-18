@@ -1,15 +1,16 @@
 import requests
 import json
 import pandas as pd
+import numpy as np
 import datetime
 from tqdm import tqdm
-from config import KofisConfig
+from config import KobisConfig
 
-kofis_config = KofisConfig()
+kobis_config = KobisConfig()
 
 class Movie():
     def __init__(self):
-        self.key = kofis_config.key
+        self.key = kobis_config.key
 
     def get_extract_range(self, startDt, period):
         f = "%Y%m%d"
@@ -24,7 +25,7 @@ class Movie():
                 breakpoint
         return extract_range
 
-    def request_BoxOffice(self, targetDt):
+    def request_DailyBoxOffice(self, targetDt):
         url = "http://www.kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.json"
         params = {
             "key": self.key,
@@ -45,7 +46,7 @@ class Movie():
         extract_range = self.get_extract_range(startDt, period)
         boxoffice_df = pd.DataFrame()
         for extract_date in tqdm(extract_range):
-            df = self.request_BoxOffice(extract_date)
+            df = self.request_DailyBoxOffice(extract_date)
             df["targetDt"] = extract_date[:4] + "-" + extract_date[4:6] + "-" + extract_date[6:]
             boxoffice_df = pd.concat([boxoffice_df, df], ignore_index=True)
         col_types = {
@@ -64,10 +65,12 @@ class Movie():
             "targetDt": "datetime64[ns]",
         }
         boxoffice_df = boxoffice_df.astype(col_types)
+        boxoffice_df["elapsedDt"] = (boxoffice_df["targetDt"] - boxoffice_df["openDt"]) / np.timedelta64(1, 'D')
         return boxoffice_df
     
 
 if __name__ == '__main__':
     movie = Movie()
-    df = movie.get_BoxOffice("20231122", 20)
+    df = movie.get_BoxOffice("20231122", 10)
+    df
     print(df)
