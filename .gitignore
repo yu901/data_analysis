@@ -2,3 +2,4 @@ data/
 result/
 *-checkpoint.ipynb
 *.pyc
+*.yml
