@@ -81,19 +81,19 @@ class Movie():
             list_exist = False 
         return df, list_exist
 
-    def get_MovieList(self, openStartDt, period=1):
+    def get_MovieList(self, openStartDt, period=0):
         movie_list = pd.DataFrame()
         curPage = 1
         list_exist = True
         while list_exist:
-            openEndDt = str(int(openStartDt) + period - 1)
+            openEndDt = str(int(openStartDt) + period)
             df, list_exist = self.request_MovieList(curPage, openStartDt, openEndDt)      
             movie_list = pd.concat([movie_list, df], ignore_index=True)
             curPage += 1
         self.save_data(movie_list, f"MovieList_S{openStartDt}_E{openEndDt}")
         return movie_list
 
-    def get_BoxOffice(self, startDt, period):
+    def get_DailyBoxOffice(self, startDt, period):
         extract_range = self.get_extract_range(startDt, period)
         boxoffice_df = pd.DataFrame()
         for extract_date in tqdm(extract_range):
@@ -123,6 +123,6 @@ class Movie():
 
 if __name__ == '__main__':
     movie = Movie()
-    # df = movie.get_BoxOffice("20231122", 10)
+    # df = movie.get_DailyBoxOffice("20231122", 10)
     df = movie.get_MovieList("2021", 2)
     print(df)
