@@ -58,32 +58,37 @@ class Movie():
             break
         return df
 
-    def request_MovieList(self, openStartDt, period=1):
+    def request_MovieList(self, curPage, openStartDt, openEndDt):
         url = "http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json"
+        params = {
+            "key": self.key,
+            "itemPerPage": "100",
+            "curPage": str(curPage),
+            "openStartDt": openStartDt,
+            "openEndDt": openEndDt
+        }  
+        list_exist = True
+        while True:
+            try:
+                response = requests.get(url, params=params)
+                text = response.text
+                loads = json.loads(text)
+                df = pd.DataFrame(loads["movieListResult"]["movieList"])
+            except:
+                continue
+            break            
+        if loads["movieListResult"]["totCnt"] == 0:
+            list_exist = False 
+        return df, list_exist
+
+    def get_MovieList(self, openStartDt, period=1):
         movie_list = pd.DataFrame()
         curPage = 1
         list_exist = True
         while list_exist:
             openEndDt = str(int(openStartDt) + period - 1)
-            params = {
-                "key": self.key,
-                "itemPerPage": "100",
-                "curPage": str(curPage),
-                "openStartDt": openStartDt,
-                "openEndDt": openEndDt
-            }    
-            while True:
-                try:
-                    response = requests.get(url, params=params)
-                    text = response.text
-                    loads = json.loads(text)
-                    df = pd.DataFrame(loads["movieListResult"]["movieList"])
-                except:
-                    continue
-                break            
+            df, list_exist = self.request_MovieList(curPage, openStartDt, openEndDt)      
             movie_list = pd.concat([movie_list, df], ignore_index=True)
-            if loads["movieListResult"]["totCnt"] == 0:
-                list_exist = False
             curPage += 1
         self.save_data(movie_list, f"MovieList_S{openStartDt}_E{openEndDt}")
         return movie_list
@@ -119,5 +124,5 @@ class Movie():
 if __name__ == '__main__':
     movie = Movie()
     # df = movie.get_BoxOffice("20231122", 10)
-    df = movie.request_MovieList("2022")
+    df = movie.get_MovieList("2021", 2)
     print(df)
