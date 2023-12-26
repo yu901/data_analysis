@@ -5,12 +5,28 @@ import numpy as np
 import datetime
 from tqdm import tqdm
 from config import KobisConfig
+from utils import *
 
 kobis_config = KobisConfig()
 
 class Movie():
     def __init__(self):
         self.key = kobis_config.key
+
+    def get_dir_path(self):
+        dir_path = kobis_config.data
+        return dir_path
+
+    def get_csv_file_path(self, file_name):
+        dir_path = self.get_dir_path()
+        return f"{dir_path}/{file_name}.csv"
+    
+    def save_data(self, data, file_name):
+        dir_path = self.get_dir_path()
+        file_path = self.get_csv_file_path(file_name)
+        if not os.path.isdir(dir_path):
+            os.makedirs(dir_path)
+        save_csv(data, file_path)
 
     def get_extract_range(self, startDt, period):
         f = "%Y%m%d"
@@ -42,6 +58,36 @@ class Movie():
             break
         return df
 
+    def request_MovieList(self, openStartDt, period=1):
+        url = "http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json"
+        movie_list = pd.DataFrame()
+        curPage = 1
+        list_exist = True
+        while list_exist:
+            openEndDt = str(int(openStartDt) + period - 1)
+            params = {
+                "key": self.key,
+                "itemPerPage": "100",
+                "curPage": str(curPage),
+                "openStartDt": openStartDt,
+                "openEndDt": openEndDt
+            }    
+            while True:
+                try:
+                    response = requests.get(url, params=params)
+                    text = response.text
+                    loads = json.loads(text)
+                    df = pd.DataFrame(loads["movieListResult"]["movieList"])
+                except:
+                    continue
+                break            
+            movie_list = pd.concat([movie_list, df], ignore_index=True)
+            if loads["movieListResult"]["totCnt"] == 0:
+                list_exist = False
+            curPage += 1
+        self.save_data(movie_list, f"MovieList_S{openStartDt}_E{openEndDt}")
+        return movie_list
+
     def get_BoxOffice(self, startDt, period):
         extract_range = self.get_extract_range(startDt, period)
         boxoffice_df = pd.DataFrame()
@@ -66,11 +112,12 @@ class Movie():
         }
         boxoffice_df = boxoffice_df.astype(col_types)
         boxoffice_df["elapsedDt"] = (boxoffice_df["targetDt"] - boxoffice_df["openDt"]) / np.timedelta64(1, 'D')
+        self.save_data(boxoffice_df, f"BoxOffice_S{startDt}_E{extract_date}")
         return boxoffice_df
     
 
 if __name__ == '__main__':
     movie = Movie()
-    df = movie.get_BoxOffice("20231122", 10)
-    df
+    # df = movie.get_BoxOffice("20231122", 10)
+    df = movie.request_MovieList("2022")
     print(df)

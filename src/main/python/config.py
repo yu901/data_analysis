@@ -24,3 +24,4 @@ class KobisConfig(BaseConfig):
         super().__init__()
         storage = self.config["kobis"]
         self.key = storage["key"]
+        self.data = storage["data"]
