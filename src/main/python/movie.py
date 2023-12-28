@@ -106,20 +106,22 @@ class Movie():
 
     def get_MovieList(self, openStartDt, period=0):
         movie_list = pd.DataFrame()
-        curPage = 1
-        list_exist = True
-        while list_exist:
-            openEndDt = str(int(openStartDt) + period)
-            df, list_exist = self.request_MovieList(curPage, openStartDt, openEndDt)      
-            movie_list = pd.concat([movie_list, df], ignore_index=True)
-            curPage += 1
-        movie_list["directors_str"] = movie_list["directors"].astype(str)
-        movie_list = movie_list[
-            (movie_list["repGenreNm"]!="성인물(에로)") & 
-            (movie_list["movieNmEn"]!="") &
-            (movie_list["directors_str"]!="[]")].copy()
-        movie_list = movie_list.drop(columns=["directors_str"])
-        self.save_data(movie_list, f"MovieList_S{openStartDt}_E{openEndDt}")
+        target_year = openStartDt
+        for years in range(period):
+            target_year = str(int(target_year) + years)
+            curPage = 1
+            list_exist = True
+            while list_exist:
+                df, list_exist = self.request_MovieList(curPage, target_year, target_year)      
+                movie_list = pd.concat([movie_list, df], ignore_index=True)
+                curPage += 1
+            movie_list["directors_str"] = movie_list["directors"].astype(str)
+            movie_list = movie_list[
+                (movie_list["repGenreNm"]!="성인물(에로)") & 
+                (movie_list["movieNmEn"]!="") &
+                (movie_list["directors_str"]!="[]")].copy()
+            movie_list = movie_list.drop(columns=["directors_str"])
+            self.save_data(movie_list, f"MovieList_T{target_year}")
         return movie_list
 
     def get_DailyBoxOffice(self, startDt, period=None):
@@ -161,7 +163,7 @@ class Movie():
 if __name__ == '__main__':
     movie = Movie()
     # df = movie.get_DailyBoxOffice("20231122", 10)
-    df = movie.get_MovieList("2020")
+    df = movie.get_MovieList("2020", 2)
     movieCd = "20212866"
     # df = movie.get_MovieBoxOffice(movieCd)
-    print(df[df['movieCd']=="20190549"]['movieNmEn'].values)
+    # print(df[df['movieCd']=="20190549"]['movieNmEn'].values)
