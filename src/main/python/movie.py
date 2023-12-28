@@ -134,9 +134,16 @@ class Movie():
     def get_DailyBoxOffice(self, startDt, period=None):
         extract_range = self.get_extract_range(startDt, period)
         boxoffice = pd.DataFrame()
-        for extract_date in tqdm(extract_range):
-            df = self.request_DailyBoxOffice(extract_date)
-            df["targetDt"] = extract_date[:4] + "-" + extract_date[4:6] + "-" + extract_date[6:]
+        for extract_date in extract_range:
+            file_path = self.get_file_path(f"DailyBoxOffice_T{extract_date}")
+            if not os.path.isfile(file_path):
+                df = self.request_DailyBoxOffice(extract_date)
+                df["targetDt"] = extract_date[:4] + "-" + extract_date[4:6] + "-" + extract_date[6:]
+                self.save_data(df, file_path)
+                print(f"{file_path.split('/')[-1]} is saved")
+            else:
+                df = load_csv(file_path)
+                print(f"{file_path.split('/')[-1]} already exists")
             boxoffice = pd.concat([boxoffice, df], ignore_index=True)
         col_types = {
             "salesAmt": "float",
@@ -155,8 +162,6 @@ class Movie():
         }
         boxoffice = boxoffice.astype(col_types)
         boxoffice["elapsedDt"] = (boxoffice["targetDt"] - boxoffice["openDt"]) / np.timedelta64(1, 'D')
-        file_path = self.get_file_path(f"BoxOffice_S{startDt}_E{extract_date}")
-        self.save_data(boxoffice, file_path)
         return boxoffice
     
     def get_MovieBoxOffice(self, movieCd, period=None):
@@ -170,8 +175,8 @@ class Movie():
 
 if __name__ == '__main__':
     movie = Movie()
-    # df = movie.get_DailyBoxOffice("20231122", 10)
-    df = movie.get_MovieList("2020", 4)
+    df = movie.get_DailyBoxOffice("20231122", 20)
+    # df = movie.get_MovieList("2020", 4)
     movieCd = "20212866"
     # df = movie.get_MovieBoxOffice(movieCd)
     # print(df[df['movieCd']=="20190549"]['movieNmEn'].values)
