@@ -17,13 +17,12 @@ class Movie():
         dir_path = kobis_config.data
         return dir_path
 
-    def get_csv_file_path(self, file_name):
+    def get_file_path(self, file_name):
         dir_path = self.get_dir_path()
         return f"{dir_path}/{file_name}.csv"
     
-    def save_data(self, data, file_name):
-        dir_path = self.get_dir_path()
-        file_path = self.get_csv_file_path(file_name)
+    def save_data(self, data, file_path):
+        dir_path = os.path.dirname(os.path.abspath(file_path))
         if not os.path.isdir(dir_path):
             os.makedirs(dir_path)
         save_csv(data, file_path)
@@ -109,19 +108,27 @@ class Movie():
         target_year = openStartDt
         for years in range(period):
             target_year = str(int(target_year) + years)
-            curPage = 1
-            list_exist = True
-            while list_exist:
-                df, list_exist = self.request_MovieList(curPage, target_year, target_year)      
-                movie_list = pd.concat([movie_list, df], ignore_index=True)
-                curPage += 1
-            movie_list["directors_str"] = movie_list["directors"].astype(str)
-            movie_list = movie_list[
-                (movie_list["repGenreNm"]!="성인물(에로)") & 
-                (movie_list["movieNmEn"]!="") &
-                (movie_list["directors_str"]!="[]")].copy()
-            movie_list = movie_list.drop(columns=["directors_str"])
-            self.save_data(movie_list, f"MovieList_T{target_year}")
+            file_path = self.get_file_path(f"MovieList_T{target_year}")
+            if not os.path.isfile(file_path):
+                movie_y = pd.DataFrame()
+                curPage = 1
+                list_exist = True
+                while list_exist:
+                    movie_p, list_exist = self.request_MovieList(curPage, target_year, target_year)      
+                    movie_y = pd.concat([movie_y, movie_p], ignore_index=True)
+                    curPage += 1
+                movie_y["directors_str"] = movie_y["directors"].astype(str)
+                movie_y = movie_y[
+                    (movie_y["repGenreNm"]!="성인물(에로)") & 
+                    (movie_y["movieNmEn"]!="") &
+                    (movie_y["directors_str"]!="[]")].copy()
+                movie_y = movie_y.drop(columns=["directors_str"])
+                self.save_data(movie_y, file_path)
+                print(f"{file_path.split('/')[-1]} is saved")
+            else:
+                movie_y = load_csv(file_path)
+                print(f"{file_path.split('/')[-1]} already exists")
+            movie_list = pd.concat([movie_list, movie_y], ignore_index=True)
         return movie_list
 
     def get_DailyBoxOffice(self, startDt, period=None):
@@ -148,7 +155,8 @@ class Movie():
         }
         boxoffice = boxoffice.astype(col_types)
         boxoffice["elapsedDt"] = (boxoffice["targetDt"] - boxoffice["openDt"]) / np.timedelta64(1, 'D')
-        self.save_data(boxoffice, f"BoxOffice_S{startDt}_E{extract_date}")
+        file_path = self.get_file_path(f"BoxOffice_S{startDt}_E{extract_date}")
+        self.save_data(boxoffice, file_path)
         return boxoffice
     
     def get_MovieBoxOffice(self, movieCd, period=None):
@@ -163,7 +171,7 @@ class Movie():
 if __name__ == '__main__':
     movie = Movie()
     # df = movie.get_DailyBoxOffice("20231122", 10)
-    df = movie.get_MovieList("2020", 2)
+    df = movie.get_MovieList("2020", 4)
     movieCd = "20212866"
     # df = movie.get_MovieBoxOffice(movieCd)
     # print(df[df['movieCd']=="20190549"]['movieNmEn'].values)
