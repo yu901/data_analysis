@@ -28,20 +28,24 @@ class Movie():
             os.makedirs(dir_path)
         save_csv(data, file_path)
 
-    def get_extract_range(self, startDt, period):
+    def get_extract_range(self, startDt, period=None):
         f = "%Y%m%d"
-        start_date = datetime.datetime.strptime(startDt, f)
+        start_time = datetime.datetime.strptime(startDt, f)
+        now_time = datetime.datetime.now() - datetime.timedelta(days=1)
+        if period == None:
+            limit_time = now_time
+        else:
+            limit_time = min(now_time, start_time + datetime.timedelta(days=period))
         extract_range = []
-        for days in range(period):
-            extract_date = start_date + datetime.timedelta(days=days)
-            if extract_date < datetime.datetime.now():
-                extract_date = extract_date.strftime(f)
-                extract_range.append(extract_date)
-            else:
-                breakpoint
+        extract_time = start_time
+        while extract_time < limit_time:
+            extract_str = extract_time.strftime(f)
+            extract_range.append(extract_str)
+            extract_time += datetime.timedelta(days=1)            
         return extract_range
 
     def request_DailyBoxOffice(self, targetDt):
+        # 일별 박스오피스
         url = "http://www.kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.json"
         params = {
             "key": self.key,
@@ -57,8 +61,27 @@ class Movie():
                 continue
             break
         return df
+    
+    def request_MovieInfo(self, movieCd):
+        # 영화 상세정보
+        url = "http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieInfo.json"
+        params = {
+            "key": self.key,
+            "movieCd": movieCd
+        }
+        while True:
+            try:
+                response = requests.get(url, params=params)
+                text = response.text
+                loads = json.loads(text)
+                movie_info = loads["movieInfoResult"]["movieInfo"]
+            except:
+                continue
+            break
+        return movie_info
 
     def request_MovieList(self, curPage, openStartDt, openEndDt):
+        # 영화 목록
         url = "http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json"
         params = {
             "key": self.key,
@@ -93,13 +116,13 @@ class Movie():
         self.save_data(movie_list, f"MovieList_S{openStartDt}_E{openEndDt}")
         return movie_list
 
-    def get_DailyBoxOffice(self, startDt, period):
+    def get_DailyBoxOffice(self, startDt, period=None):
         extract_range = self.get_extract_range(startDt, period)
-        boxoffice_df = pd.DataFrame()
+        boxoffice = pd.DataFrame()
         for extract_date in tqdm(extract_range):
             df = self.request_DailyBoxOffice(extract_date)
             df["targetDt"] = extract_date[:4] + "-" + extract_date[4:6] + "-" + extract_date[6:]
-            boxoffice_df = pd.concat([boxoffice_df, df], ignore_index=True)
+            boxoffice = pd.concat([boxoffice, df], ignore_index=True)
         col_types = {
             "salesAmt": "float",
             "salesShare": "float",
@@ -115,14 +138,25 @@ class Movie():
             "openDt": "datetime64[ns]",
             "targetDt": "datetime64[ns]",
         }
-        boxoffice_df = boxoffice_df.astype(col_types)
-        boxoffice_df["elapsedDt"] = (boxoffice_df["targetDt"] - boxoffice_df["openDt"]) / np.timedelta64(1, 'D')
-        self.save_data(boxoffice_df, f"BoxOffice_S{startDt}_E{extract_date}")
-        return boxoffice_df
+        boxoffice = boxoffice.astype(col_types)
+        boxoffice["elapsedDt"] = (boxoffice["targetDt"] - boxoffice["openDt"]) / np.timedelta64(1, 'D')
+        self.save_data(boxoffice, f"BoxOffice_S{startDt}_E{extract_date}")
+        return boxoffice
     
+    def get_MovieBoxOffice(self, movieCd, period=None):
+        movie_info = self.request_MovieInfo(movieCd=movieCd)
+        openDt = movie_info["openDt"]
+        boxoffice = self.get_DailyBoxOffice(openDt, period)
+        boxoffice = boxoffice[boxoffice["movieCd"]==movieCd].copy()
+        boxoffice = boxoffice.reset_index(drop=True)
+        return boxoffice
+
 
 if __name__ == '__main__':
     movie = Movie()
     # df = movie.get_DailyBoxOffice("20231122", 10)
-    df = movie.get_MovieList("2021", 2)
+    # df = movie.get_MovieList("2021", 2)
+    movieCd = "20212866"
+    df = movie.request_MovieInfo(movieCd=movieCd)
+    df = movie.get_MovieBoxOffice(movieCd, "20231122", 10)
     print(df)
