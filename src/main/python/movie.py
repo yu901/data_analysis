@@ -113,6 +113,12 @@ class Movie():
             df, list_exist = self.request_MovieList(curPage, openStartDt, openEndDt)      
             movie_list = pd.concat([movie_list, df], ignore_index=True)
             curPage += 1
+        movie_list["directors_str"] = movie_list["directors"].astype(str)
+        movie_list = movie_list[
+            (movie_list["repGenreNm"]!="성인물(에로)") & 
+            (movie_list["movieNmEn"]!="") &
+            (movie_list["directors_str"]!="[]")].copy()
+        movie_list = movie_list.drop(columns=["directors_str"])
         self.save_data(movie_list, f"MovieList_S{openStartDt}_E{openEndDt}")
         return movie_list
 
@@ -155,8 +161,7 @@ class Movie():
 if __name__ == '__main__':
     movie = Movie()
     # df = movie.get_DailyBoxOffice("20231122", 10)
-    # df = movie.get_MovieList("2021", 2)
+    df = movie.get_MovieList("2020")
     movieCd = "20212866"
-    df = movie.request_MovieInfo(movieCd=movieCd)
-    df = movie.get_MovieBoxOffice(movieCd, "20231122", 10)
-    print(df)
+    # df = movie.get_MovieBoxOffice(movieCd)
+    print(df[df['movieCd']=="20190549"]['movieNmEn'].values)
