@@ -5,6 +5,7 @@ import numpy as np
 import datetime
 from tqdm import tqdm
 from config import KobisConfig
+from kobis_path import * 
 from utils import *
 
 kobis_config = KobisConfig()
@@ -12,14 +13,6 @@ kobis_config = KobisConfig()
 class Movie():
     def __init__(self):
         self.key = kobis_config.key
-
-    def get_dir_path(self):
-        dir_path = kobis_config.data
-        return dir_path
-
-    def get_file_path(self, file_name):
-        dir_path = self.get_dir_path()
-        return f"{dir_path}/{file_name}.csv"
     
     def save_data(self, data, file_path):
         dir_path = os.path.dirname(os.path.abspath(file_path))
@@ -108,7 +101,7 @@ class Movie():
         target_year = openStartDt
         for years in range(period):
             target_year = str(int(target_year) + years)
-            file_path = self.get_file_path(f"MovieList_T{target_year}")
+            file_path = get_raw_file_path("MovieList", f"MovieList_T{target_year}")
             if not os.path.isfile(file_path):
                 movie_y = pd.DataFrame()
                 curPage = 1
@@ -135,7 +128,7 @@ class Movie():
         extract_range = self.get_extract_range(startDt, period)
         boxoffice = pd.DataFrame()
         for extract_date in extract_range:
-            file_path = self.get_file_path(f"DailyBoxOffice_T{extract_date}")
+            file_path = get_raw_file_path("DailyBoxOffice", f"DailyBoxOffice_T{extract_date}")
             if not os.path.isfile(file_path):
                 df = self.request_DailyBoxOffice(extract_date)
                 df["targetDt"] = extract_date[:4] + "-" + extract_date[4:6] + "-" + extract_date[6:]
@@ -175,8 +168,8 @@ class Movie():
 
 if __name__ == '__main__':
     movie = Movie()
-    df = movie.get_DailyBoxOffice("20231122", 20)
-    # df = movie.get_MovieList("2020", 4)
-    movieCd = "20212866"
+    df = movie.get_DailyBoxOffice("20231122", 15)
+    df = movie.get_MovieList("2020", 2)
+    # movieCd = "20212866"
     # df = movie.get_MovieBoxOffice(movieCd)
     # print(df[df['movieCd']=="20190549"]['movieNmEn'].values)
