@@ -7,6 +7,7 @@ from tqdm import tqdm
 from config import KobisConfig
 from kobis_path import * 
 from utils import *
+import ast
 
 kobis_config = KobisConfig()
 
@@ -110,6 +111,8 @@ class Movie():
                     movie_p, list_exist = self.request_MovieList(curPage, target_year, target_year)      
                     movie_y = pd.concat([movie_y, movie_p], ignore_index=True)
                     curPage += 1
+                # movie_y["directors"] = movie_y["directors"].apply(ast.literal_eval)
+                movie_y["directors"] = movie_y["directors"].apply(lambda x: [director["peopleNm"] for director in x])
                 movie_y["directors_str"] = movie_y["directors"].astype(str)
                 movie_y = movie_y[
                     (movie_y["repGenreNm"]!="성인물(에로)") & 
@@ -173,3 +176,7 @@ if __name__ == '__main__':
     # movieCd = "20212866"
     # df = movie.get_MovieBoxOffice(movieCd)
     # print(df[df['movieCd']=="20190549"]['movieNmEn'].values)
+
+    # target_year = "2021"
+    # file_path = get_raw_file_path("MovieList", f"MovieList_T{target_year}")
+    # df = load_csv(file_path)
