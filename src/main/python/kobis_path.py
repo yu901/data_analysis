@@ -1,4 +1,4 @@
-from config import KobisConfig
+from src.main.python.config import KobisConfig
 
 kobis_config = KobisConfig()
 

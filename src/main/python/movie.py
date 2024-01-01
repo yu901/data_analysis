@@ -4,9 +4,9 @@ import pandas as pd
 import numpy as np
 import datetime
 from tqdm import tqdm
-from config import KobisConfig
-from kobis_path import * 
-from utils import *
+from src.main.python.config import KobisConfig
+from src.main.python.kobis_path import * 
+from src.main.python.utils import *
 import ast
 
 kobis_config = KobisConfig()
@@ -97,7 +97,7 @@ class Movie():
             list_exist = False 
         return df, list_exist
 
-    def get_MovieList(self, openStartDt, period=0):
+    def get_MovieList(self, openStartDt, period=1):
         movie_list = pd.DataFrame()
         target_year = openStartDt
         for years in range(period):
@@ -171,8 +171,9 @@ class Movie():
 
 if __name__ == '__main__':
     movie = Movie()
-    df = movie.get_DailyBoxOffice("20231122", 15)
-    df = movie.get_MovieList("2020", 2)
+    # df = movie.get_DailyBoxOffice("20231122", 15)
+    df = movie.get_MovieList("2022", 1)
+    print(df.head(5))
     # movieCd = "20212866"
     # df = movie.get_MovieBoxOffice(movieCd)
     # print(df[df['movieCd']=="20190549"]['movieNmEn'].values)
