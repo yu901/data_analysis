@@ -111,7 +111,6 @@ class Movie():
                     movie_p, list_exist = self.request_MovieList(curPage, target_year, target_year)      
                     movie_y = pd.concat([movie_y, movie_p], ignore_index=True)
                     curPage += 1
-                # movie_y["directors"] = movie_y["directors"].apply(ast.literal_eval)
                 movie_y["directors"] = movie_y["directors"].apply(lambda x: [director["peopleNm"] for director in x])
                 movie_y["directors_str"] = movie_y["directors"].astype(str)
                 movie_y = movie_y[
@@ -123,6 +122,7 @@ class Movie():
                 print(f"{file_path.split('/')[-1]} is saved")
             else:
                 movie_y = load_csv(file_path)
+                movie_y["directors"] = movie_y["directors"].apply(ast.literal_eval)
                 print(f"{file_path.split('/')[-1]} already exists")
             movie_list = pd.concat([movie_list, movie_y], ignore_index=True)
         return movie_list
