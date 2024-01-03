@@ -31,14 +31,22 @@ def dataframe_with_selections(df, hide_index=True):
     selected_rows = df[edited_df.Select]
     return selected_rows
 
+def line_chart_with_movieCd(movieCds):
+    if (movieCds == None).all():
+        st.text("Select a movie from the list.")
+    else:
+        boxoffice = movie.get_MoviesBoxOffice(movieCds, period=60)
+        st.line_chart(boxoffice, x="elapsedDt", y="audiCnt", color="movieNm")
+
+
 # Some number in the range 2018-2023
 year_to_filter = st.slider('year', 2018, 2023, 2023)
 st.subheader(f'{year_to_filter} Movie List')
 data = load_MovieList(str(year_to_filter))
 selection = dataframe_with_selections(data)
 if len(selection) > 0:
-    movieCd = selection.index.values
+    movieCds = selection.index.values
 else:
-    movieCd = None
+    movieCds = None
 
-# bar_chart_with_issue(chart_data, issue_info)
+line_chart_with_movieCd(movieCds)

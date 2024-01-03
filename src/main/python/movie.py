@@ -141,7 +141,9 @@ class Movie():
                 df = load_csv(file_path)
                 print(f"{file_path.split('/')[-1]} already exists")
             boxoffice = pd.concat([boxoffice, df], ignore_index=True)
+        boxoffice = boxoffice[boxoffice["openDt"]!=" "].copy()
         col_types = {
+            "movieCd": "str",
             "salesAmt": "float",
             "salesShare": "float",
             "salesInten": "float",
@@ -158,6 +160,7 @@ class Movie():
         }
         boxoffice = boxoffice.astype(col_types)
         boxoffice["elapsedDt"] = (boxoffice["targetDt"] - boxoffice["openDt"]) / np.timedelta64(1, 'D')
+        boxoffice["elapsedDt"] = boxoffice["elapsedDt"].astype(int)
         return boxoffice
     
     def get_MovieBoxOffice(self, movieCd, period=None):
@@ -168,14 +171,23 @@ class Movie():
         boxoffice = boxoffice.reset_index(drop=True)
         return boxoffice
 
+    def get_MoviesBoxOffice(self, movieCds, period=None):
+        boxoffice = pd.DataFrame()
+        for movieCd in movieCds:
+            df = self.get_MovieBoxOffice(movieCd=movieCd, period=period)
+            boxoffice = pd.concat([boxoffice, df], ignore_index=True)
+        return boxoffice
+
 
 if __name__ == '__main__':
     movie = Movie()
     # df = movie.get_DailyBoxOffice("20231122", 15)
-    df = movie.get_MovieList("2022", 1)
-    print(df.head(5))
-    # movieCd = "20212866"
-    # df = movie.get_MovieBoxOffice(movieCd)
+    # df = movie.get_MovieList("2022", 1)
+    # print(df.head(5))
+    # 서울의 봄: 20212866 / 슬램덩크: 20228555
+    movieCd = "20228555"
+    df = movie.get_MovieBoxOffice(movieCd)
+    print(df)
     # print(df[df['movieCd']=="20190549"]['movieNmEn'].values)
 
     # target_year = "2021"
