@@ -1,5 +1,6 @@
 data/
 result/
+config/
 *-checkpoint.ipynb
 *.pyc
 *.yml
