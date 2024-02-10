@@ -4,17 +4,23 @@ import pandas as pd
 import numpy as np
 import datetime
 from tqdm import tqdm
-from src.main.python.config import KobisConfig
+import urllib.request
+import re
+from krwordrank.word import KRWordRank
+from src.main.python.config import KobisConfig, NaverConfig
 from src.main.python.kobis_path import * 
 from src.main.python.utils import *
 import ast
 
 kobis_config = KobisConfig()
+naver_config = NaverConfig()
 
 class Movie():
     def __init__(self):
-        self.key = kobis_config.key
-    
+        self.kobis_key = kobis_config.key
+        self.naver_client_id = naver_config.client_id
+        self.naver_client_secret = naver_config.client_secret
+
     def save_data(self, data, file_path):
         dir_path = os.path.dirname(os.path.abspath(file_path))
         if not os.path.isdir(dir_path):
@@ -41,7 +47,7 @@ class Movie():
         # 일별 박스오피스
         url = "http://www.kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.json"
         params = {
-            "key": self.key,
+            "key": self.kobis_key,
             "targetDt": targetDt
         }    
         while True:
@@ -59,7 +65,7 @@ class Movie():
         # 영화 상세정보
         url = "http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieInfo.json"
         params = {
-            "key": self.key,
+            "key": self.kobis_key,
             "movieCd": movieCd
         }
         while True:
@@ -77,7 +83,7 @@ class Movie():
         # 영화 목록
         url = "http://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json"
         params = {
-            "key": self.key,
+            "key": self.kobis_key,
             "itemPerPage": "100",
             "curPage": str(curPage),
             "openStartDt": openStartDt,
@@ -177,6 +183,49 @@ class Movie():
             df = self.get_MovieBoxOffice(movieCd=movieCd, period=period)
             boxoffice = pd.concat([boxoffice, df], ignore_index=True)
         return boxoffice
+    
+    def request_webkr(self, keyword):
+        encText = urllib.parse.quote(keyword)
+        results = ""
+        for i in range(10):
+            start = 100 * i + 1
+            url = "https://openapi.naver.com/v1/search/webkr?query=" + encText +f"&display=100&start={start}"# JSON 결과
+            request = urllib.request.Request(url)
+            request.add_header("X-Naver-Client-Id",self.naver_client_id)
+            request.add_header("X-Naver-Client-Secret",self.naver_client_secret)
+            response = urllib.request.urlopen(request)
+            rescode = response.getcode()
+            if(rescode==200):
+                response_body = response.read()
+                result = response_body.decode('utf-8')
+            else:
+                result = ''
+                print("Error Code:" + rescode)
+            results += result
+        return results
+
+    def get_movie_words(self, movie_nm):
+        # Regex Description
+        results = self.request_webkr(movie_nm)
+        results = re.sub("(<b>|<\\\/b>|&lt|&gt|;|:|\(|\)|\[|\]|\"|\'|\.|\‘|\’|\,|\《|\》|\〈|\〉)", "", results)
+        result_list = re.findall("description([^\n]*)", results)
+        result_list = [result for result in result_list if ("영화" in result)|(movie_nm in result)]
+        
+        # Word Rank
+        min_count = 5 # 단어출현빈도 수 (5번 이상 출현한 단어)
+        max_length = 10 # 단어 길이 최대 값
+        verbose = True
+        wordrank_extractor = KRWordRank(min_count=min_count, max_length=max_length, verbose=verbose)
+        beta = 0.85  # PageRank의 decaying factor beta, 이 값을 이용하여 각 노드(키워드) 간의 관계를 계산
+        max_iter = 10 # WordRank 알고리즘의 최대 반복 횟수
+        keywords, rank, graph = wordrank_extractor.extract(result_list, beta, max_iter)
+        stopwords=['개봉', '영화', '배우', '관객', '감독', '있는', '있다', '이후', '뉴스레터', '문서', '다룬', '그린', '누적', '기준', '구독하기', '다시보', '전체', '지난', '있습니다', '대한', '무료', '버전', '다시', '보기', '있었', '따르면', '다운', '있다', '등으로', '등이', '정보', '출연', '따르면', '오는', 'CGV', '메가박스', '롯데시네마'] # 위 keywords에서 제거하고싶은 단어
+        #stopwords 제거 후 keywords 상위 300개 추출
+        passwords={
+            word:score for word, score in sorted(
+                keywords.items(), key=lambda x:-x[1])[:300] if not (word in stopwords)
+        }
+        return passwords
 
 
 if __name__ == '__main__':
@@ -185,11 +234,12 @@ if __name__ == '__main__':
     # df = movie.get_MovieList("2022", 1)
     # print(df.head(5))
     # 서울의 봄: 20212866 / 슬램덩크: 20228555
-    movieCd = "20228555"
-    df = movie.get_MovieBoxOffice(movieCd)
-    print(df)
+    # movieCd = "20228555"
+    # df = movie.get_MovieBoxOffice(movieCd)
+    # print(df)
     # print(df[df['movieCd']=="20190549"]['movieNmEn'].values)
 
     # target_year = "2021"
     # file_path = get_raw_file_path("MovieList", f"MovieList_T{target_year}")
     # df = load_csv(file_path)
+    print(movie.get_movie_words("서울의 봄"))

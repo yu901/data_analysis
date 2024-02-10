@@ -25,3 +25,10 @@ class KobisConfig(BaseConfig):
         storage = self.config["kobis"]
         self.key = storage["key"]
         self.data = storage["data"]
+
+class NaverConfig(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        storage = self.config["naver"]
+        self.client_id = storage["client_id"]
+        self.client_secret = storage["client_secret"]

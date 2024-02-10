@@ -1,12 +1,30 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import os.path
-import ast
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm # 폰트매니저
 from src.main.python.movie import Movie
 
+st.set_option('deprecation.showPyplotGlobalUse', False)
 st.title('BoxOffice Overview')
 movie = Movie()
+
+path = './fonts/NanumBarunGothic.ttf' # NanumBarunGothic 폰트의 경로를 지정
+fe = fm.FontEntry(
+    fname=path, # ttf 파일이 저장되어 있는 경로ㅣ
+    name='NanumGothic')                        # 이 폰트의 원하는 이름 설정
+fm.fontManager.ttflist.insert(0, fe)              # Matplotlib에 폰트 추가
+plt.rcParams.update({'font.size': 18, 'font.family': 'NanumGothic'})
+# Create and generate a word cloud image:
+wc = WordCloud(
+    font_path = path,
+    width=1000,  # 그래프 크기
+    height=1000, # 그래프 크기
+    scale=3.0, # 해상도 스케일링
+    max_font_size=250 # 최대 폰트
+
+)
 
 @st.cache_data
 def load_MovieList(year):
@@ -32,11 +50,23 @@ def dataframe_with_selections(df, hide_index=True):
     return selected_rows
 
 def line_chart_with_movieCd(movieCds):
-    if (movieCds == None).all():
+    if (np.array(movieCds == None)).all():
         st.text("Select a movie from the list.")
     else:
         boxoffice = movie.get_MoviesBoxOffice(movieCds, period=60)
         st.line_chart(boxoffice, x="elapsedDt", y="audiCnt", color="movieNm")
+
+def word_cloud_with_movieNm(movieNm):
+    if (np.array(movieNm == None)).all():
+        st.text("Select a movie from the list.")
+    else:
+        keywords = movie.get_movie_words(movieNm)
+        gen = wc.generate_from_frequencies(keywords)
+        # Display the generated image:
+        plt.imshow(gen, interpolation='bilinear')
+        plt.axis("off")
+        plt.show()
+        st.pyplot()
 
 
 # Some number in the range 2018-2023
@@ -46,7 +76,10 @@ data = load_MovieList(str(year_to_filter))
 selection = dataframe_with_selections(data)
 if len(selection) > 0:
     movieCds = selection.index.values
+    movieNm = selection.iloc[0]['movieNm']
 else:
     movieCds = None
+    movieNm = None
 
 line_chart_with_movieCd(movieCds)
+word_cloud_with_movieNm(movieNm)
