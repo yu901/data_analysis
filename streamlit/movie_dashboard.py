@@ -70,7 +70,7 @@ def word_cloud_with_movieNm(movieNm):
 
 
 # Some number in the range 2018-2023
-year_to_filter = st.slider('year', 2018, 2023, 2023)
+year_to_filter = st.slider('year', 2018, 2024, 2024)
 st.subheader(f'{year_to_filter} Movie List')
 data = load_MovieList(str(year_to_filter))
 selection = dataframe_with_selections(data)
@@ -81,5 +81,6 @@ else:
     movieCds = None
     movieNm = None
 
+# movieCds = ["20212866", "20234675"]
 line_chart_with_movieCd(movieCds)
 word_cloud_with_movieNm(movieNm)
