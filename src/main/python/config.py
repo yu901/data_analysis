@@ -4,9 +4,9 @@ import yaml
 class BaseConfig:
     def __init__(self):
         self.root_path = os.environ.get("ROOT_PATH", ".")
-        self.set_yml_path("/src/main/python/config.yml")
+        self.set_yml_path("/config/config.yml")
         if not os.path.exists(self.yml_path):
-            encrypt_yml_path = "/src/main/python/config.yml"
+            encrypt_yml_path = "/config/config.yml"
             print(f"{self.yml_path} does not exist. use {encrypt_yml_path}")
             self.set_yml_path(encrypt_yml_path)
 
