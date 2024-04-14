@@ -21,12 +21,6 @@ class Movie():
         self.naver_client_id = naver_config.client_id
         self.naver_client_secret = naver_config.client_secret
 
-    def save_data(self, data, file_path):
-        dir_path = os.path.dirname(os.path.abspath(file_path))
-        if not os.path.isdir(dir_path):
-            os.makedirs(dir_path)
-        save_csv(data, file_path)
-
     def get_extract_range(self, startDt, period=None):
         f = "%Y%m%d"
         start_time = datetime.datetime.strptime(startDt, f)
@@ -124,7 +118,7 @@ class Movie():
                     (movie_y["movieNmEn"]!="") &
                     (movie_y["directors_str"]!="[]")].copy()
                 movie_y = movie_y.drop(columns=["directors_str"])
-                self.save_data(movie_y, file_path)
+                save_csv(movie_y, file_path)
                 print(f"{file_path.split('/')[-1]} is saved")
             else:
                 movie_y = load_csv(file_path)
@@ -141,7 +135,7 @@ class Movie():
             if not os.path.isfile(file_path):
                 df = self.request_DailyBoxOffice(extract_date)
                 df["targetDt"] = extract_date[:4] + "-" + extract_date[4:6] + "-" + extract_date[6:]
-                self.save_data(df, file_path)
+                save_csv(df, file_path)
                 print(f"{file_path.split('/')[-1]} is saved")
             else:
                 df = load_csv(file_path)
