@@ -4,3 +4,4 @@ config/
 *-checkpoint.ipynb
 *.pyc
 *.yml
+*.env
