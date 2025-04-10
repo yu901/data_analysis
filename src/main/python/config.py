@@ -18,6 +18,11 @@ class BaseConfig:
         self.conf_dir = config_path
         self.yml_path = self.root_path + self.conf_dir
 
+    def get_value(self, obj, key):
+        if key in obj:
+            return obj[key]
+        else:
+            raise KeyError(key)
 
 class KobisConfig(BaseConfig):
     def __init__(self):
@@ -32,3 +37,16 @@ class NaverConfig(BaseConfig):
         storage = self.config["naver"]
         self.client_id = storage["client_id"]
         self.client_secret = storage["client_secret"]
+
+class MysqlConfig(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        mysql = self.config["mysql"]
+        self.host = self.get_value(mysql, "host")
+        self.port = self.get_value(mysql, "port")
+        self.database = self.get_value(mysql, "database")
+        self.user = self.get_value(mysql, "user")
+        self.password = self.get_value(mysql, "password")
+    
+    def get_url(self):
+        return f"mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
